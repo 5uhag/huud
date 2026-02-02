@@ -6,7 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class ApiService {
   // Laptop Flask Server Endpoint
   // Default fallback if not set
-  static String _laptopIp = '192.168.29.20';
+  static String _laptopIp = ''; // User must configure this
   static const String _port = '5000';
 
   static Future<void> init() async {

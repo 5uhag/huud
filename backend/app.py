@@ -20,26 +20,29 @@ def get_stats():
     ram_used_gb = round(virtual_memory.used / (1024 ** 3), 1)
     ram_total_gb = round(virtual_memory.total / (1024 ** 3), 1)
     
-    # Battery status
+    # Battery
     battery = psutil.sensors_battery()
-    battery_percent = battery.percent if battery else 100
-    is_plugged = battery.power_plugged if battery else True
-
-    # GPU Stats (NVIDIA)
+    battery_info = {
+        "percent": round(battery.percent, 1) if battery else 0,
+        "is_plugged": battery.power_plugged if battery else False,
+        "secs_left": battery.secsleft if battery else -1
+    }
+    
+    # GPU (NVIDIA) - Attempt to get more details like Voltage/Power if possible
+    gpu_info = None
     try:
         gpus = GPUtil.getGPUs()
         if gpus:
-            gpu_stats = {
-                "name": gpus[0].name,
-                "load": round(gpus[0].load * 100, 1),
-                "memoryUsed": round(gpus[0].memoryUsed / 1024, 1), # GB
-                "memoryTotal": round(gpus[0].memoryTotal / 1024, 1), # GB
-                "temperature": gpus[0].temperature
+            gpu = gpus[0]
+            gpu_info = {
+                "load": round(gpu.load * 100, 1),
+                "memoryUsed": round(gpu.memoryUsed / 1024, 2),
+                "memoryTotal": round(gpu.memoryTotal / 1024, 2),
+                "temperature": gpu.temperature,
+                "name": gpu.name
             }
-        else:
-            gpu_stats = None
     except:
-        gpu_stats = None
+        pass
 
     # Active Connections (Top 5 Listening Ports)
     connections = []

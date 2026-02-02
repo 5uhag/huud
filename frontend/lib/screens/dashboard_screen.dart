@@ -16,16 +16,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Map<String, dynamic> _laptopStats = {};
   bool _laptopStatsLoading = true;
   bool _laptopConnected = false;
+  bool _laptopIpEmpty = true;
 
-  // Crypto Stats
-  Map<String, dynamic> _btcStats = {};
-  Map<String, dynamic> _ethStats = {};
-
-  // Network Speed Calc
+  // Tech Stats - Speed
+  double _uploadSpeed = 0.0;
+  double _downloadSpeed = 0.0;
   int _lastBytesSent = 0;
   int _lastBytesRecv = 0;
-  double _uploadSpeed = 0.0; // MB/s
-  double _downloadSpeed = 0.0; // MB/s
+
+  // Tech Stats - Latency
+  int _latencyMs = 0;
 
   Timer? _timer;
 
@@ -46,61 +46,67 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _fetchData() async {
-    // 1. Fetch Laptop Stats
+    // 2. Fetch Laptop Stats
+    // Handled by _checkConnection loop now, but we can do tech stats here if needed
+    // Logic moved to _checkConnection for better error handling flow
+  }
+
+  // _checkConnection removed (duplicate)
+    final ip = ApiService.currentIp;
+    if (ip.isEmpty) {
+      if (mounted) {
+        setState(() {
+          _laptopIpEmpty = true;
+          _laptopConnected = false;
+          _laptopStatsLoading = false;
+        });
+      }
+      return;
+    }
+
+    final stopwatch = Stopwatch()..start();
     try {
       final stats = await ApiService.fetchLaptopStats();
+      stopwatch.stop();
+
       if (mounted) {
-        // Calculate Network Speed
+        // Calculate Speed before setState to ensure vars are updated
         if (stats['net_io'] != null) {
           final int currentSent = stats['net_io']['bytes_sent'] ?? 0;
           final int currentRecv = stats['net_io']['bytes_recv'] ?? 0;
 
           if (_lastBytesSent != 0) {
-            // Delta / 3 seconds -> convert to MB/s
             final sentDelta = currentSent - _lastBytesSent;
             final recvDelta = currentRecv - _lastBytesRecv;
 
-            // Check for negative delta (reboot/reset)
             if (sentDelta >= 0 && recvDelta >= 0) {
               _uploadSpeed = (sentDelta / 1024 / 1024) / 3.0;
               _downloadSpeed = (recvDelta / 1024 / 1024) / 3.0;
             }
           }
-
           _lastBytesSent = currentSent;
           _lastBytesRecv = currentRecv;
         }
 
         setState(() {
-          _laptopStats = stats;
-          _laptopStatsLoading = false;
+          _laptopIpEmpty = false;
           _laptopConnected = true;
+          _laptopStats = stats;
+          _latencyMs = stopwatch.elapsedMilliseconds;
+          _laptopStatsLoading = false;
         });
       }
     } catch (e) {
       if (mounted) {
         setState(() {
+          _laptopIpEmpty = false; // IP exists, just offline
           _laptopConnected = false;
           _laptopStatsLoading = false;
-          // Reset speeds on disconnect
+          _latencyMs = 999;
           _uploadSpeed = 0.0;
           _downloadSpeed = 0.0;
         });
       }
-    }
-
-    // 2. Fetch Crypto Stats
-    try {
-      final btc = await ApiService.fetchTicker('BTCUSDT');
-      final eth = await ApiService.fetchTicker('ETHUSDT');
-      if (mounted) {
-        setState(() {
-          _btcStats = btc;
-          _ethStats = eth;
-        });
-      }
-    } catch (e) {
-      // Handle error quietly
     }
   }
 
@@ -220,9 +226,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             const SizedBox(width: 8),
             Text(
-              _laptopConnected ? "ONLINE" : "OFFLINE",
+              _laptopIpEmpty
+                  ? "SETUP REQUIRED"
+                  : (_laptopConnected ? "ONLINE" : "OFFLINE"),
               style: TextStyle(
-                  color: _laptopConnected ? Colors.white : Colors.red,
+                  color: _laptopIpEmpty
+                      ? Colors.orange
+                      : (_laptopConnected ? Colors.white : Colors.red),
                   fontWeight: FontWeight.bold,
                   fontSize: 12,
                   letterSpacing: 1.0),
@@ -446,13 +456,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildAuxColumn() {
-    // Network Ports
-    final ports = _laptopStats['ports'] as List? ?? [];
-
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Network Speed Card (New)
+        // 1. Network Speed
         SizedBox(
           height: 140,
           child: ProCard(
@@ -464,90 +470,37 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 (_downloadSpeed / 10.0).clamp(0.0, 1.0), // Cap visual at 10MB/s
             onTap: () {
               _showDetails(
-                  "Network Activity",
+                  "Net Activity",
                   Column(
                     children: [
-                      _buildDetailRow("Download",
-                          "${_downloadSpeed.toStringAsFixed(2)} MB/s"),
+                      _buildDetailRow(
+                          "Down", "${_downloadSpeed.toStringAsFixed(2)} MB/s"),
                       const SizedBox(height: 8),
                       _buildDetailRow(
-                          "Upload", "${_uploadSpeed.toStringAsFixed(2)} MB/s"),
+                          "Up", "${_uploadSpeed.toStringAsFixed(2)} MB/s"),
                     ],
                   ));
             },
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
 
-        // Active Ports
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: const Color(0xFF121212),
-            border: Border.all(color: Colors.grey[800]!),
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text("ACTIVE PORTS",
-                  style: TextStyle(
-                      color: Colors.grey[500],
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold)),
-              const SizedBox(height: 12),
-              if (ports.isEmpty)
-                Text("No restricted ports",
-                    style: TextStyle(color: Colors.grey[700])),
-              ...ports
-                  .map((p) => Padding(
-                        padding: const EdgeInsets.only(bottom: 8.0),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text("PORT ${p['port']}",
-                                style: const TextStyle(
-                                    color: Colors.white,
-                                    fontFamily: 'monospace')),
-                            Text(p['status'],
-                                style: TextStyle(
-                                    color: Colors.green[400], fontSize: 10)),
-                          ],
-                        ),
-                      ))
-                  .toList()
-            ],
+        // 2. Latency / Ping
+        SizedBox(
+          height: 140,
+          child: ProCard(
+            title: "Latency",
+            value: "$_latencyMs ms",
+            subValue: "PHONE → PC",
+            icon: Icons.speed,
+            progress:
+                (1.0 - (_latencyMs / 100.0)).clamp(0.0, 1.0), // Good if low
+            onTap: () {},
           ),
         ),
-        const SizedBox(height: 16),
-        // Crypto Tickers (Simpler List)
-        _buildCryptoRow("BTCUSD", _btcStats),
-        const SizedBox(height: 8),
-        _buildCryptoRow("ETHUSD", _ethStats),
       ],
     );
   }
 
-  Widget _buildCryptoRow(String pair, Map<String, dynamic> data) {
-    if (data.isEmpty) return const SizedBox.shrink();
-    final price = double.tryParse(data['close']?.toString() ?? '0') ?? 0;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: const Color(0xFF121212),
-        border: Border.all(color: Colors.grey[800]!),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(pair, style: TextStyle(color: Colors.grey[400])),
-          Text("\$${NumberFormat("#,##0.00").format(price)}",
-              style: const TextStyle(
-                  color: Colors.white, fontWeight: FontWeight.bold)),
-        ],
-      ),
-    );
-  }
+  // Crypto helper removed as per user request
 }

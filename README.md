@@ -67,10 +67,6 @@ The server runs **only while the terminal is open**. To stop it:
 - **Frontend**: Flutter (Dart)
 - **CI/CD**: GitHub Actions (automatic APK builds)
 
-## Screenshots
-
-*Professional Minimalist Design - Matte black, crisp typography, interactive cards*
-
 ## License
 
 MIT License - See [LICENSE](LICENSE) for details.

@@ -10,6 +10,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Required for creating releases
 
     steps:
     - uses: actions/checkout@v4
@@ -42,3 +44,27 @@ jobs:
       with:
         name: release-apk
         path: frontend/build/app/outputs/flutter-apk/app-release.apk
+
+    - name: Create Release
+      if: github.ref == 'refs/heads/main'
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v1.0.${{ github.run_number }}
+        name: HUUD v1.0.${{ github.run_number }}
+        body: |
+          ## HUUD - Professional System Monitor
+          
+          **What's New:**
+          - Real-time CPU, RAM, GPU, Battery monitoring
+          - Network speed tracking
+          - Universal IP configuration (works on any laptop)
+          - Interactive detail views
+          
+          **Installation:**
+          1. Download `app-release.apk` below
+          2. Install on Android 8.0+
+          3. Long-press "HUUD // SYS" to configure server IP
+        files: frontend/build/app/outputs/flutter-apk/app-release.apk
+        draft: false
+        prerelease: false
+

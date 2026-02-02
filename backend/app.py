@@ -87,15 +87,6 @@ def get_stats():
     # Network IO (for speed calculation)
     net_io = psutil.net_io_counters()
 
-    return jsonify({
-        'cpu': cpu_percent,
-        'cpu_cores': cpu_cores,
-        'ram': ram_percent,
-        'ram_details': f"{ram_used_gb}/{ram_total_gb} GB",
-        'processes': formatted_processes,
-        'battery': battery_info['percent'],
-        'is_plugged': battery_info['is_plugged'],
-        'battery_secs_left': battery_info['secs_left'],
     # Uptime
     try:
         boot_time = psutil.boot_time()

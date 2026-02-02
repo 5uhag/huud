@@ -397,6 +397,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     _buildDetailRow("Memory Used", gpuMem),
                     const SizedBox(height: 8),
                     _buildDetailRow("Temperature", gpuTemp),
+                    const SizedBox(height: 8),
+                    _buildDetailRow("Voltage",
+                        "N/A (Req Admin)"), // Placeholder as py libraries rarely give this without kernel access
                   ],
                 ));
           },
@@ -493,6 +496,54 @@ class _DashboardScreenState extends State<DashboardScreen> {
             onTap: () {},
           ),
         ),
+        const SizedBox(height: 16),
+
+        // 3. Active Ports (Restored)
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFF121212),
+            border: Border.all(color: Colors.grey[800]!),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text("OPEN PORTS",
+                      style: TextStyle(
+                          color: Colors.grey[500],
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold)),
+                  Icon(Icons.security, color: Colors.grey[700], size: 14),
+                ],
+              ),
+              const SizedBox(height: 12),
+              // Get ports from stats
+              if ((_laptopStats['ports'] as List? ?? []).isEmpty)
+                Text("No active listeners",
+                    style: TextStyle(color: Colors.grey[700], fontSize: 13))
+              else
+                ...(_laptopStats['ports'] as List).map((p) => Padding(
+                      padding: const EdgeInsets.only(bottom: 8.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text("PORT ${p['port']}",
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontFamily: 'monospace')),
+                          Text("LISTEN",
+                              style: TextStyle(
+                                  color: Colors.green[400], fontSize: 10)),
+                        ],
+                      ),
+                    )),
+            ],
+          ),
+        )
       ],
     );
   }

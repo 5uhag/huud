@@ -87,22 +87,16 @@ def get_stats():
     # Network IO (for speed calculation)
     net_io = psutil.net_io_counters()
 
-    # Battery status
-    battery = psutil.sensors_battery()
-    battery_percent = battery.percent if battery else 100
-    is_plugged = battery.power_plugged if battery else True
-    secs_left = battery.secsleft if battery else -1
-
     return jsonify({
         'cpu': cpu_percent,
         'cpu_cores': cpu_cores,
         'ram': ram_percent,
         'ram_details': f"{ram_used_gb}/{ram_total_gb} GB",
         'processes': formatted_processes,
-        'battery': battery_percent,
-        'is_plugged': is_plugged,
-        'battery_secs_left': secs_left,
-        'gpu': gpu_stats,
+        'battery': battery_info['percent'],
+        'is_plugged': battery_info['is_plugged'],
+        'battery_secs_left': battery_info['secs_left'],
+        'gpu': gpu_info,
         'ports': connections,
         'net_io': {
             'bytes_sent': net_io.bytes_sent,

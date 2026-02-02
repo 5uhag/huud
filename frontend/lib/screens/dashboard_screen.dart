@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../widgets/pro_card.dart';
-import 'package:intl/intl.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -32,10 +31,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchData();
+    _checkConnection();
     // Refresh stats every 3 seconds
     _timer = Timer.periodic(const Duration(seconds: 3), (timer) {
-      _fetchData();
+      _checkConnection();
     });
   }
 
@@ -45,13 +44,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.dispose();
   }
 
-  Future<void> _fetchData() async {
-    // 2. Fetch Laptop Stats
-    // Handled by _checkConnection loop now, but we can do tech stats here if needed
-    // Logic moved to _checkConnection for better error handling flow
-  }
+  // _fetchData is superseded by _checkConnection
 
-  // _checkConnection removed (duplicate)
+  Future<void> _checkConnection() async {
     final ip = ApiService.currentIp;
     if (ip.isEmpty) {
       if (mounted) {
@@ -300,7 +295,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     backgroundColor: Colors.green,
                   ),
                 );
-                _fetchData(); // Retry connection immediately
+                _checkConnection(); // Retry connection immediately
               }
             },
             child: const Text("SAVE", style: TextStyle(color: Colors.white)),

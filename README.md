@@ -29,10 +29,9 @@ The server will print your local IP address:
 ### 2. Configure the App (Phone)
 
 **Download the APK:**
-1. Go to [GitHub Actions](https://github.com/5uhag/huud/actions)
-2. Click the latest successful "Build Android APK" workflow run (green checkmark ✓)
-3. Scroll down to "Artifacts" and download `release-apk`
-4. Extract the ZIP and install the APK on your phone
+- Go to [GitHub Releases](https://github.com/5uhag/huud/releases)
+- Download the latest `app-release.apk`
+- Install on your Android device
 
 **Setup:**
 1. Open HUUD

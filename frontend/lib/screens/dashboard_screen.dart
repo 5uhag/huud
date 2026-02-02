@@ -263,6 +263,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 hintStyle: TextStyle(color: Colors.grey[800]),
               ),
             ),
+            const SizedBox(height: 12),
+            Text(
+              "Current: ${ApiService.currentIp}",
+              style: const TextStyle(
+                  color: Colors.green, fontSize: 11, fontFamily: 'monospace'),
+            ),
           ],
         ),
         actions: [
@@ -272,9 +278,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           TextButton(
             onPressed: () async {
-              await ApiService.setIp(ipController.text);
+              final newIp = ipController.text.trim();
+              await ApiService.setIp(newIp);
               if (mounted) {
                 Navigator.pop(context);
+                // Show confirmation
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text("IP set to: $newIp"),
+                    duration: const Duration(seconds: 2),
+                    backgroundColor: Colors.green,
+                  ),
+                );
                 _fetchData(); // Retry connection immediately
               }
             },

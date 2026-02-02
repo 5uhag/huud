@@ -1,0 +1,105 @@
+from flask import Flask, jsonify
+from flask_cors import CORS
+import psutil
+import GPUtil
+import platform
+
+app = Flask(__name__)
+# Allow CORS to enable access from the Flutter app on the same network
+CORS(app)
+
+@app.route('/api/stats', methods=['GET'])
+def get_stats():
+    # CPU usage percentage
+    cpu_percent = psutil.cpu_percent(interval=None)
+    cpu_cores = psutil.cpu_percent(interval=None, percpu=True)
+    
+    # RAM usage
+    virtual_memory = psutil.virtual_memory()
+    ram_percent = virtual_memory.percent
+    ram_used_gb = round(virtual_memory.used / (1024 ** 3), 1)
+    ram_total_gb = round(virtual_memory.total / (1024 ** 3), 1)
+    
+    # Battery status
+    battery = psutil.sensors_battery()
+    battery_percent = battery.percent if battery else 100
+    is_plugged = battery.power_plugged if battery else True
+
+    # GPU Stats (NVIDIA)
+    try:
+        gpus = GPUtil.getGPUs()
+        if gpus:
+            gpu_stats = {
+                "name": gpus[0].name,
+                "load": round(gpus[0].load * 100, 1),
+                "memoryUsed": round(gpus[0].memoryUsed / 1024, 1), # GB
+                "memoryTotal": round(gpus[0].memoryTotal / 1024, 1), # GB
+                "temperature": gpus[0].temperature
+            }
+        else:
+            gpu_stats = None
+    except:
+        gpu_stats = None
+
+    # Active Connections (Top 5 Listening Ports)
+    connections = []
+    try:
+        # Requires admin privs for full details on windows usually, but basic check works
+        for conn in psutil.net_connections(kind='inet'):
+            if conn.status == 'LISTEN' and conn.laddr:
+                connections.append({
+                    "port": conn.laddr.port,
+                    "status": conn.status
+                })
+        # Limit to top 5 unique ports
+        seen_ports = set()
+        unique_connections = []
+        for c in connections:
+            if c['port'] not in seen_ports:
+                unique_connections.append(c)
+                seen_ports.add(c['port'])
+        connections = unique_connections[:5]
+    except:
+        pass
+
+    # Top 5 RAM Processes
+    processes = []
+    try:
+        # iterate over processes
+        for proc in psutil.process_iter(['pid', 'name', 'memory_info']):
+            try:
+                processes.append(proc.info)
+            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                pass
+        # Sort by memory usage (rss)
+        processes = sorted(processes, key=lambda p: p['memory_info'].rss, reverse=True)[:5]
+        # Format for JSON
+        formatted_processes = []
+        for p in processes:
+            mem_mb = round(p['memory_info'].rss / (1024 * 1024), 1)
+            formatted_processes.append({'name': p['name'], 'mem_mb': mem_mb})
+    except:
+        formatted_processes = []
+
+    # Network IO (for speed calculation)
+    net_io = psutil.net_io_counters()
+
+    return jsonify({
+        'cpu': cpu_percent,
+        'cpu_cores': cpu_cores,
+        'ram': ram_percent,
+        'ram_details': f"{ram_used_gb}/{ram_total_gb} GB",
+        'processes': formatted_processes,
+        'battery': battery_percent,
+        'is_plugged': is_plugged,
+        'gpu': gpu_stats,
+        'ports': connections,
+        'net_io': {
+            'bytes_sent': net_io.bytes_sent,
+            'bytes_recv': net_io.bytes_recv
+        }
+    })
+
+if __name__ == '__main__':
+    # Host 0.0.0.0 allows access from external devices (like the phone)
+    app.run(host='0.0.0.0', port=5000)

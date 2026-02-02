@@ -1,11 +1,33 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
   // Laptop Flask Server Endpoint
-  // TODO: Make this configurable in settings
-  static const String _laptopUrl = 'http://192.168.29.20:5000/api/stats';
+  // Default fallback if not set
+  static String _laptopIp = '192.168.29.20';
+  static const String _port = '5000';
+
+  static Future<void> init() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedIp = prefs.getString('laptop_ip');
+      if (savedIp != null && savedIp.isNotEmpty) {
+        _laptopIp = savedIp;
+      }
+    } catch (e) {
+      debugPrint("Error loading settings: $e");
+    }
+  }
+
+  static Future<void> setIp(String ip) async {
+    _laptopIp = ip;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('laptop_ip', ip);
+  }
+
+  static String get currentIp => _laptopIp;
 
   // Binance API Endpoint
   static const String _binanceBaseUrl =
@@ -13,10 +35,10 @@ class ApiService {
 
   // Fetch Laptop Stats
   static Future<Map<String, dynamic>> fetchLaptopStats() async {
+    final url = 'http://$_laptopIp:$_port/api/stats';
     try {
-      final response = await http
-          .get(Uri.parse(_laptopUrl))
-          .timeout(const Duration(seconds: 2));
+      final response =
+          await http.get(Uri.parse(url)).timeout(const Duration(seconds: 2));
       if (response.statusCode == 200) {
         return json.decode(response.body);
       } else {

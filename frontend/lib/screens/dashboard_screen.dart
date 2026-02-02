@@ -195,17 +195,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        const Text(
-          "HUUD // SYS",
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-            letterSpacing: -0.5,
+        GestureDetector(
+          onLongPress: _showSettings,
+          child: const Text(
+            "HUUD // SYS",
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+              letterSpacing: -0.5,
+            ),
           ),
         ),
         Row(
           children: [
+            // Removed Icon Button, now hidden in Long Press
             Container(
               width: 6,
               height: 6,
@@ -226,6 +230,58 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ],
         )
       ],
+    );
+  }
+
+  void _showSettings() {
+    final TextEditingController ipController =
+        TextEditingController(text: ApiService.currentIp);
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E1E),
+        title: const Text("SETTINGS",
+            style: TextStyle(color: Colors.white, fontSize: 14)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text("Laptop IP Address",
+                style: TextStyle(color: Colors.grey, fontSize: 12)),
+            const SizedBox(height: 8),
+            TextField(
+              controller: ipController,
+              style:
+                  const TextStyle(color: Colors.white, fontFamily: 'monospace'),
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: Colors.black,
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(4),
+                    borderSide: BorderSide.none),
+                hintText: "192.168.x.x",
+                hintStyle: TextStyle(color: Colors.grey[800]),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("CANCEL", style: TextStyle(color: Colors.grey)),
+          ),
+          TextButton(
+            onPressed: () async {
+              await ApiService.setIp(ipController.text);
+              if (mounted) {
+                Navigator.pop(context);
+                _fetchData(); // Retry connection immediately
+              }
+            },
+            child: const Text("SAVE", style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
     );
   }
 
@@ -332,10 +388,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
           icon: plugged ? Icons.power : Icons.battery_std,
           progress: battery / 100,
           onTap: () {
+            final int seconds = _laptopStats['battery_secs_left'] ?? -1;
+            String timeLeft = "Calculating...";
+
+            // psutil: -1=Unknown, -2=Unlimited(Plugged)
+            if (plugged) {
+              timeLeft = "Charging";
+            } else if (seconds > 0) {
+              final hours = seconds ~/ 3600;
+              final mins = (seconds % 3600) ~/ 60;
+              timeLeft = "${hours}h ${mins}m";
+            } else {
+              timeLeft = "Estimating...";
+            }
+
             _showDetails(
                 "Power Stats",
-                _buildDetailRow(
-                    "Status", plugged ? "Plugged In" : "Discharging"));
+                Column(
+                  children: [
+                    _buildDetailRow(
+                        "Status", plugged ? "Plugged In" : "Discharging"),
+                    const SizedBox(height: 8),
+                    _buildDetailRow("Time Left", timeLeft),
+                  ],
+                ));
           },
         ),
       ],

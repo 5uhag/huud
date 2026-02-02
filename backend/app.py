@@ -84,6 +84,12 @@ def get_stats():
     # Network IO (for speed calculation)
     net_io = psutil.net_io_counters()
 
+    # Battery status
+    battery = psutil.sensors_battery()
+    battery_percent = battery.percent if battery else 100
+    is_plugged = battery.power_plugged if battery else True
+    secs_left = battery.secsleft if battery else -1
+
     return jsonify({
         'cpu': cpu_percent,
         'cpu_cores': cpu_cores,
@@ -92,6 +98,7 @@ def get_stats():
         'processes': formatted_processes,
         'battery': battery_percent,
         'is_plugged': is_plugged,
+        'battery_secs_left': secs_left,
         'gpu': gpu_stats,
         'ports': connections,
         'net_io': {
@@ -101,5 +108,15 @@ def get_stats():
     })
 
 if __name__ == '__main__':
+    # Initial Setup: Print the Local IP Address for the user
+    import socket
+    try:
+        hostname = socket.gethostname()
+        local_ip = socket.gethostbyname(hostname)
+        print(f"\n[HUUD SERVER] Running on: {local_ip}:5000")
+        print(f"[HUUD SERVER] Enter this IP in your Mobile App Settings.\n")
+    except:
+        print("[HUUD SERVER] Could not detect local IP. Check 'ipconfig'.")
+
     # Host 0.0.0.0 allows access from external devices (like the phone)
     app.run(host='0.0.0.0', port=5000)

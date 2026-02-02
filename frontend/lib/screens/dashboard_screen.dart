@@ -433,6 +433,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         "Status", plugged ? "Plugged In" : "Discharging"),
                     const SizedBox(height: 8),
                     _buildDetailRow("Time Left", timeLeft),
+                    const SizedBox(height: 8),
+                    _buildDetailRow("System Uptime",
+                        _laptopStats['uptime'] ?? "Loading..."),
                   ],
                 ));
           },

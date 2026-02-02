@@ -96,6 +96,35 @@ def get_stats():
         'battery': battery_info['percent'],
         'is_plugged': battery_info['is_plugged'],
         'battery_secs_left': battery_info['secs_left'],
+    # Uptime
+    try:
+        boot_time = psutil.boot_time()
+        import time
+        uptime_seconds = time.time() - boot_time
+        # Format "Xd Xh Xm"
+        days = int(uptime_seconds // (24 * 3600))
+        uptime_seconds %= (24 * 3600)
+        hours = int(uptime_seconds // 3600)
+        uptime_seconds %= 3600
+        minutes = int(uptime_seconds // 60)
+        
+        uptime_str = ""
+        if days > 0: uptime_str += f"{days}d "
+        if hours > 0: uptime_str += f"{hours}h "
+        uptime_str += f"{minutes}m"
+    except:
+        uptime_str = "Unknown"
+
+    return jsonify({
+        'cpu': cpu_percent,
+        'cpu_cores': cpu_cores,
+        'ram': ram_percent,
+        'ram_details': f"{ram_used_gb}/{ram_total_gb} GB",
+        'processes': formatted_processes,
+        'battery': battery_info['percent'],
+        'is_plugged': battery_info['is_plugged'],
+        'battery_secs_left': battery_info['secs_left'],
+        'uptime': uptime_str,
         'gpu': gpu_info,
         'ports': connections,
         'net_io': {

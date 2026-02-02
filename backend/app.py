@@ -14,6 +14,17 @@ def get_stats():
     cpu_percent = psutil.cpu_percent(interval=None)
     cpu_cores = psutil.cpu_percent(interval=None, percpu=True)
     
+    # CPU Temp (Best Effort)
+    cpu_temp = "N/A"
+    try:
+        temps = psutil.sensors_temperatures()
+        if temps and 'coretemp' in temps:
+            cpu_temp = f"{temps['coretemp'][0].current} °C"
+        elif temps and 'cpu_thermal' in temps:
+             cpu_temp = f"{temps['cpu_thermal'][0].current} °C"
+    except:
+        pass
+    
     # RAM usage
     virtual_memory = psutil.virtual_memory()
     ram_percent = virtual_memory.percent
@@ -108,6 +119,7 @@ def get_stats():
 
     return jsonify({
         'cpu': cpu_percent,
+        'cpu_temp': cpu_temp,
         'cpu_cores': cpu_cores,
         'ram': ram_percent,
         'ram_details': f"{ram_used_gb}/{ram_total_gb} GB",

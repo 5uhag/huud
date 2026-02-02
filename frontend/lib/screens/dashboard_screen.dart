@@ -337,7 +337,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ProCard(
           title: "Cpu Load",
           value: "$cpu%",
-          subValue: "CORES: ${_laptopStats['cpu_cores']?.length ?? 'N/A'}",
+          subValue:
+              "${_laptopStats['cpu_temp'] ?? ''} \nCORES: ${_laptopStats['cpu_cores']?.length ?? 'N/A'}",
           icon: Icons.memory,
           progress: cpu / 100,
           onTap: () {
@@ -459,49 +460,37 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildAuxColumn() {
     return Column(
       children: [
-        // 1. Network Speed
+        // 1. Network Speed (Merged with Latency)
         SizedBox(
           height: 140,
           child: ProCard(
             title: "Net Speed",
             value: "${_downloadSpeed.toStringAsFixed(1)} MB/s",
-            subValue: "UP: ${_uploadSpeed.toStringAsFixed(1)} MB/s",
+            subValue:
+                "UP: ${_uploadSpeed.toStringAsFixed(1)} MB/s\nPING: $_latencyMs ms",
             icon: Icons.network_check,
             progress:
                 (_downloadSpeed / 10.0).clamp(0.0, 1.0), // Cap visual at 10MB/s
             onTap: () {
               _showDetails(
-                  "Net Activity",
+                  "Network Activity",
                   Column(
                     children: [
-                      _buildDetailRow(
-                          "Down", "${_downloadSpeed.toStringAsFixed(2)} MB/s"),
+                      _buildDetailRow("Download",
+                          "${_downloadSpeed.toStringAsFixed(2)} MB/s"),
                       const SizedBox(height: 8),
                       _buildDetailRow(
-                          "Up", "${_uploadSpeed.toStringAsFixed(2)} MB/s"),
+                          "Upload", "${_uploadSpeed.toStringAsFixed(2)} MB/s"),
+                      const SizedBox(height: 8),
+                      _buildDetailRow("Latency", "$_latencyMs ms"),
                     ],
                   ));
             },
           ),
         ),
-        const SizedBox(height: 12),
-
-        // 2. Latency / Ping
-        SizedBox(
-          height: 140,
-          child: ProCard(
-            title: "Latency",
-            value: "$_latencyMs ms",
-            subValue: "PHONE → PC",
-            icon: Icons.speed,
-            progress:
-                (1.0 - (_latencyMs / 100.0)).clamp(0.0, 1.0), // Good if low
-            onTap: () {},
-          ),
-        ),
         const SizedBox(height: 16),
 
-        // 3. Active Ports (Restored)
+        // 2. Active Ports (Renumbered)
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(

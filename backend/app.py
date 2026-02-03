@@ -136,9 +136,25 @@ def get_stats():
         }
     })
 
-if __name__ == '__main__':
-    # Initial Setup: Print the Local IP Address for the user
+def start_server():
     import socket
+    import sys
+    
+    # ASCII Banner
+    banner = r"""
+  _    _ _    _ _    _ _____  
+ | |  | | |  | | |  | |  __ \ 
+ | |__| | |  | | |  | | |  | |
+ |  __  | |  | | |  | | |  | |
+ | |  | | |__| | |__| | |__| |
+ |_|  |_|\____/ \____/|_____/ 
+                               
+    SERVER RUNNING...
+    """
+    print(banner)
+    print("Download App: https://github.com/5uhag/huud/releases/latest")
+    print("-" * 50)
+
     try:
         hostname = socket.gethostname()
         local_ip = socket.gethostbyname(hostname)
@@ -147,5 +163,14 @@ if __name__ == '__main__':
     except:
         print("[HUUD SERVER] Could not detect local IP. Check 'ipconfig'.")
 
-    # Host 0.0.0.0 allows access from external devices (like the phone)
-    app.run(host='0.0.0.0', port=5000)
+    print("Press CTRL+C to stop.")
+    
+    try:
+        # Host 0.0.0.0 allows access from external devices (like the phone)
+        app.run(host='0.0.0.0', port=5000)
+    except KeyboardInterrupt:
+        print("\n\n[HUUD SERVER] Stopping...")
+        sys.exit(0)
+
+if __name__ == '__main__':
+    start_server()
